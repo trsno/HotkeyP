@@ -1,4 +1,4 @@
-﻿// HotkeyP .NET port. Based on HotkeyP (C) Petr Lastovicka, GNU General Public License.
+// HotkeyP .NET port. Based on HotkeyP (C) Petr Lastovicka, GNU General Public License.
 using HotkeyP.Engine;
 using HotkeyP.Input;
 using static HotkeyP.Native.NativeMethods;
@@ -13,11 +13,11 @@ static class InputCommands
         t.Add(27, c => PlayMacro(c, c.Param));
         t.Add([26, 74, 94], CmdToWindow);
         t.Add(37, MoveMouse);
-        t.Add(43, c => PlayMacro(c, @"\REP\LBUTTON"));
-        t.Add(44, c => PlayMacro(c, @"\REP\MBUTTON"));
-        t.Add(45, c => PlayMacro(c, @"\REP\RBUTTON"));
-        t.Add(79, c => PlayMacro(c, @"\REP\XBUTTON1"));
-        t.Add(80, c => PlayMacro(c, @"\REP\XBUTTON2"));
+        t.Add(43, _ => Click(MouseButton.Left));
+        t.Add(44, _ => Click(MouseButton.Middle));
+        t.Add(45, _ => Click(MouseButton.Right));
+        t.Add(79, _ => Click(MouseButton.X1));
+        t.Add(80, _ => Click(MouseButton.X2));
         t.Add(76, _ => InputSender.DoubleClick());
         t.Add(75, c => Wheel(c, MOUSEEVENTF_WHEEL));
         t.Add(108, c => Wheel(c, MOUSEEVENTF_HWHEEL));
@@ -141,6 +141,8 @@ static class InputCommands
         return d != 0 ? d : -WHEEL_DELTA;
     }
 
+    static void Click(MouseButton b) => WithoutModifiers(() => InputSender.Click(b));
+
     static void Wheel(CommandContext c, uint flag)
     {
         int delta = WheelDelta(c.Param);
@@ -168,14 +170,23 @@ static class InputCommands
         try { action(); }
         finally
         {
+            bool hook = PhysicalKeys.HookActive;
+            if (hook)
+            {
+                // the hook knows which keys the user still holds
+                for (int i = 0; i < held.Length; i++) held[i] = PhysicalKeys.IsDown(PhysicalModifiers[i]);
+            }
+            else if (held[0])
+            {
+                // right Alt also reports left Ctrl (AltGr)
+                held[Array.IndexOf(PhysicalModifiers, InputSender.VK_LCONTROL)] = false;
+            }
             bool lctrl = false;
             for (int i = 0; i < held.Length; i++)
             {
-                if (held[i] && PhysicalKeys.IsDown(PhysicalModifiers[i]))
-                {
-                    InputSender.KeyDown(PhysicalModifiers[i]);
-                    if (PhysicalModifiers[i] == InputSender.VK_LCONTROL) lctrl = true;
-                }
+                if (!held[i]) continue;
+                InputSender.KeyDown(PhysicalModifiers[i]);
+                if (PhysicalModifiers[i] == InputSender.VK_LCONTROL) lctrl = true;
             }
             if ((GetAsyncKeyState(InputSender.VK_LWIN) < 0 || GetAsyncKeyState(InputSender.VK_RWIN) < 0
                  || GetAsyncKeyState(InputSender.VK_LMENU) < 0) && !lctrl)
@@ -183,6 +194,12 @@ static class InputCommands
                 // a lone Win or Alt release would open the Start menu or the window menu
                 InputSender.KeyDown(InputSender.VK_CONTROL);
                 InputSender.KeyUp(InputSender.VK_CONTROL);
+            }
+            if (hook)
+            {
+                // the user could release a key just before it was pressed again
+                for (int i = 0; i < held.Length; i++)
+                    if (held[i] && !PhysicalKeys.IsDown(PhysicalModifiers[i])) InputSender.KeyUp(PhysicalModifiers[i]);
             }
         }
     }
