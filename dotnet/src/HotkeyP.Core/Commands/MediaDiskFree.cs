@@ -73,6 +73,7 @@ public static class DiskFreeOsd
     public static void Show(CommandContext c)
     {
         var lines = Measure();
-        c.Host.ShowOsd(OsdKind.DiskFree, Format(lines), lines.Count > 0 ? lines[0].FreeFraction : null);
+        // the parameter is the display time in milliseconds, as in the original
+        c.Host.ShowOsd(OsdKind.DiskFree, Format(lines), lines.Count > 0 ? lines[0].FreeFraction : null, Math.Max(0, c.IntParam(0)));
     }
 }

@@ -70,7 +70,7 @@ public sealed class CommandRunner : IDisposable
     }
 
     /// <summary>Every command group adds its commands here.</summary>
-    static void RegisterAll(CommandTable t)
+    internal static void RegisterAll(CommandTable t)
     {
         HotkeyPCommands.Register(t);
         WindowCommands.Register(t);

@@ -218,9 +218,9 @@ static class InputCommands
 
     static void ShowText(CommandContext c)
     {
-        var (_, text) = ParseShowText(c.Param);
-        // IAppHost.ShowOsd has no duration, and no way to hide the text when the same hotkey is pressed again
-        c.Host.ShowOsd(OsdKind.Text, InputPaste.FormatText(text));
+        var (ms, text) = ParseShowText(c.Param);
+        // pressing the hotkey again while the same text is shown hides it (handled by the host)
+        c.Host.ShowOsd(OsdKind.Text, InputPaste.FormatText(text), null, ms);
     }
 
     // ---------------------------------------------------------------- disable keys

@@ -26,10 +26,10 @@ public partial class OsdWindow : Window
         };
     }
 
-    public void ShowText(OsdKind kind, string text, double? level)
+    public void ShowText(OsdKind kind, string text, double? level, int durationMs = 0)
     {
-        // pressing "Show text" again with the same text hides it, like the original
-        if (kind == OsdKind.Text && IsVisible && text == lastText) { FadeOut(); return; }
+        // pressing "Show text" or "Disk free space" again while it is shown hides it, like the original
+        if (kind != OsdKind.Volume && IsVisible && Opacity > 0 && text == lastText) { FadeOut(); lastText = null; return; }
         lastText = text;
         Glyph.Text = kind switch
         {
@@ -37,9 +37,20 @@ public partial class OsdWindow : Window
             OsdKind.DiskFree => "",
             _ => "",
         };
-        Message.Text = text;
-        Bar.Visibility = level.HasValue ? Visibility.Visible : Visibility.Collapsed;
-        if (level.HasValue) Bar.Value = Math.Clamp(level.Value, 0, 1);
+        if (kind == OsdKind.DiskFree)
+        {
+            Message.Text = "Free disk space";
+            Drives.ItemsSource = DiskFreeOsd.Parse(text);
+            Drives.Visibility = Visibility.Visible;
+            Bar.Visibility = Visibility.Collapsed;
+        }
+        else
+        {
+            Message.Text = text;
+            Drives.Visibility = Visibility.Collapsed;
+            Bar.Visibility = level.HasValue ? Visibility.Visible : Visibility.Collapsed;
+            if (level.HasValue) Bar.Value = Math.Clamp(level.Value, 0, 1);
+        }
 
         BeginAnimation(OpacityProperty, null);
         Opacity = 1;
@@ -47,7 +58,12 @@ public partial class OsdWindow : Window
         UpdateLayout();
         PlaceOnActiveScreen();
         hideTimer.Stop();
-        hideTimer.Interval = TimeSpan.FromMilliseconds(kind == OsdKind.Text ? 6000 : 1800);
+        hideTimer.Interval = TimeSpan.FromMilliseconds(durationMs > 0 ? durationMs : kind switch
+        {
+            OsdKind.Text => 6000,
+            OsdKind.DiskFree => 4000,
+            _ => 1800,
+        });
         hideTimer.Start();
     }
 

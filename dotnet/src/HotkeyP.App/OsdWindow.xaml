@@ -16,6 +16,23 @@
                 <TextBlock x:Name="Message" FontSize="15" TextWrapping="Wrap" VerticalAlignment="Center" MaxWidth="560" />
             </StackPanel>
             <ProgressBar x:Name="Bar" Height="4" Margin="0,12,0,2" Maximum="1" Visibility="Collapsed" />
+            <!-- disk free space: one row per drive -->
+            <ItemsControl x:Name="Drives" Visibility="Collapsed" Margin="0,4,0,0">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="36" />
+                                <ColumnDefinition Width="180" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding Drive}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <ProgressBar Grid.Column="1" Height="6" Maximum="1" Value="{Binding FreeFraction, Mode=OneWay}" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="2" Text="{Binding FreeText}" Margin="12,0,0,0" VerticalAlignment="Center" />
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
         </StackPanel>
     </Border>
 </Window>

@@ -174,10 +174,10 @@ public sealed class AppController : IAppHost, IDisposable
     public bool Confirm(string text) => UiSync(() =>
         MessageBox.Show(text, "HotkeyP", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes);
 
-    public void ShowOsd(OsdKind kind, string text, double? level = null) => Ui(() =>
+    public void ShowOsd(OsdKind kind, string text, double? level = null, int durationMs = 0) => Ui(() =>
     {
         osd ??= new OsdWindow();
-        osd.ShowText(kind, text, level);
+        osd.ShowText(kind, text, level, durationMs);
     });
 
     public int PickFromList(string title, IReadOnlyList<string> items) => UiSync(() => PickListWindow.Pick(title, items));

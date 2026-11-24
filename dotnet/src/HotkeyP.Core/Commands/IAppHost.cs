@@ -13,8 +13,12 @@ public interface IAppHost
     void ShowMainWindow();
     void ShowMessage(string text, bool error = true);
     bool Confirm(string text);
-    /// <summary>On-screen display. <paramref name="level"/> is 0..1 for a bar (volume, disk), null for plain text.</summary>
-    void ShowOsd(OsdKind kind, string text, double? level = null);
+    /// <summary>
+    /// On-screen display. <paramref name="level"/> is 0..1 for a bar (volume), null for plain text.
+    /// For <see cref="OsdKind.DiskFree"/> the text is in the <see cref="DiskFreeOsd"/> format (one bar per drive).
+    /// <paramref name="durationMs"/> 0 means the default time. Showing the same text again hides it (toggle).
+    /// </summary>
+    void ShowOsd(OsdKind kind, string text, double? level = null, int durationMs = 0);
     /// <summary>Lets the user pick one item; returns the index or -1 when cancelled.</summary>
     int PickFromList(string title, IReadOnlyList<string> items);
     void SetTrayIconVisible(bool visible);

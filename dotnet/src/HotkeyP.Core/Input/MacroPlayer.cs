@@ -171,7 +171,9 @@ public sealed class MacroPlayer
         bool lctrl = false;
         for (int i = 0; i < PhysicalModifiers.Length; i++)
         {
-            bool held = heldBefore[i] && PhysicalKeys.IsDown(PhysicalModifiers[i]);
+            // with the hook we know whether the user still holds the key; without it GetAsyncKeyState already
+            // reads "up" after our injected key-up, so the state before the macro is the best information
+            bool held = heldBefore[i] && (!PhysicalKeys.HookActive || PhysicalKeys.IsDown(PhysicalModifiers[i]));
             if (held) { KeyDown(PhysicalModifiers[i]); if (PhysicalModifiers[i] == VK_LCONTROL) lctrl = true; }
         }
         if ((GetAsyncKeyState(VK_LWIN) < 0 || GetAsyncKeyState(VK_RWIN) < 0 || GetAsyncKeyState(VK_LMENU) < 0) && !lctrl)
