@@ -50,33 +50,51 @@ sealed class TrayIcon : IDisposable
         highlightTimer.Start();
     }
 
-    void ShowMenu()
+    internal void ShowMenu()
     {
-        var menu = new ContextMenu();
-        MenuItem Item(string text, string glyph, Action click)
+        var menu = new ContextMenu { MinWidth = 220 };
+        // every item draws its glyph itself, so icons and the checkmark share one column and no empty
+        // check/icon columns are reserved on the left
+        MenuItem Item(string text, string glyph, Action click, bool bold = false)
         {
-            var mi = new MenuItem { Header = text, Icon = new TextBlock { Text = glyph, Style = (Style)Application.Current.Resources["Icon"] } };
+            var row = new StackPanel { Orientation = Orientation.Horizontal };
+            row.Children.Add(new TextBlock
+            {
+                Text = glyph, Style = (Style)Application.Current.Resources["Icon"], FontSize = 16, Width = 20,
+                Margin = new Thickness(0, 0, 12, 0), VerticalAlignment = VerticalAlignment.Center, TextAlignment = TextAlignment.Center,
+            });
+            row.Children.Add(new TextBlock { Text = text, VerticalAlignment = VerticalAlignment.Center, FontWeight = bold ? FontWeights.SemiBold : FontWeights.Normal });
+            var mi = new MenuItem { Header = row, Padding = new Thickness(8, 0, 16, 0), MinHeight = 0, Height = 34 };
             mi.Click += (_, _) => click();
             return mi;
         }
+        Separator Sep()
+        {
+            // a thin divider like the Windows 11 menus (the theme's separator adds a lot of empty space)
+            var line = new FrameworkElementFactory(typeof(Border));
+            line.SetValue(FrameworkElement.HeightProperty, 1.0);
+            line.SetValue(FrameworkElement.MarginProperty, new Thickness(4, 4, 4, 4));
+            line.SetResourceReference(Border.BackgroundProperty, "DividerStrokeColorDefaultBrush");
+            return new Separator { Template = new ControlTemplate(typeof(Separator)) { VisualTree = line } };
+        }
 
-        menu.Items.Add(Item("Open HotkeyP", "\uE737", app.ShowMainWindow));
+        menu.Items.Add(Item("Open HotkeyP", "", app.ShowMainWindow, bold: true));
         var trayHotkeys = app.Document.Hotkeys.Where(h => h.TrayMenu).ToList();
         if (trayHotkeys.Count > 0)
         {
-            menu.Items.Add(new Separator());
+            menu.Items.Add(Sep());
             foreach (var hk in trayHotkeys)
             {
                 var h = hk;
-                menu.Items.Add(Item(CommandRunner.DisplayName(h), h.IsCommand ? "\uE756" : "\uE7AC", () => app.Runner.Post(() => app.Runner.Execute(h))));
+                menu.Items.Add(Item(CommandRunner.DisplayName(h), h.IsCommand ? "" : "", () => app.Runner.Post(() => app.Runner.Execute(h))));
             }
         }
-        menu.Items.Add(new Separator());
-        var enabled = new MenuItem { Header = "Hotkeys enabled", IsCheckable = true, IsChecked = app.HotkeysEnabled };
-        enabled.Click += (_, _) => app.HotkeysEnabled = enabled.IsChecked;
-        menu.Items.Add(enabled);
-        menu.Items.Add(new Separator());
-        menu.Items.Add(Item("Exit", "\uE7E8", app.Exit));
+        menu.Items.Add(Sep());
+        bool on = app.HotkeysEnabled;
+        // the checkmark sits in the icon column; an empty glyph keeps the text aligned when unchecked
+        menu.Items.Add(Item("Hotkeys enabled", on ? "" : "", () => app.HotkeysEnabled = !on));
+        menu.Items.Add(Sep());
+        menu.Items.Add(Item("Exit", "", app.Exit));
 
         // a context menu needs a foreground window of ours to close properly when the user clicks elsewhere
         var host = MenuHost;
