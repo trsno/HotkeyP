@@ -268,9 +268,9 @@ public sealed class HotkeyEngine : IDisposable
     bool Allowed(Hotkey hk)
     {
         if (Paused) return false;
-        if (DisableAll) return hk.Command == 87;
+        if (DisableAll) return hk.Command == 87 && !hk.Args.StartsWith('1');
         if (hk.VKey == Hotkey.VkMouse && DisableMouse) return hk.Command == 88;
-        if (hk.VKey < 256 && DisableKeyboard) return hk.Command == 97;
+        if (hk.VKey < 256 && DisableKeyboard) return hk.Command == 97 && !hk.Args.StartsWith('1');
         return true;
     }
 
@@ -500,6 +500,13 @@ public sealed class HotkeyEngine : IDisposable
     bool UnDelayButtons()
     {
         if (delayedButtons == MouseButtons.Empty) return false;
+        // the held-back buttons may be a hotkey on their own (e.g. "Right" next to "Right+Left"); the C++ found it
+        // when its replayed click came back through the hook
+        if (FireMouse(delayedButtons))
+        {
+            IgnoreDelayed();
+            return false;
+        }
         KillDelayTimer();
         var list = MouseButtons.Enumerate(delayedButtons).ToList();
         delayedButtons = MouseButtons.Empty;

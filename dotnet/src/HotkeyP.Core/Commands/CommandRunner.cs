@@ -141,8 +141,14 @@ public sealed class CommandRunner : IDisposable
             return WindowTools.ForegroundMatches(WindowTools.SplitWindowParams(hk.Args).Window);
         if (hk.Command is 61 or 70)
         {
-            var subs = SubCommands(hk);
-            return subs.Count == 0 || subs.Any(s => IsActive(s, depth + 1));
+            var list = Hotkeys;
+            foreach (var num in Model.MultiCommandParam.Parse(hk.Args))
+            {
+                int n = num.Value;
+                if (n >= 1 && n <= list.Count && !ReferenceEquals(list[n - 1], hk) && IsActive(list[n - 1], depth + 1)) return true;
+                if (hk.Command == 70) break;
+            }
+            return false;
         }
         return true;
     }
@@ -266,7 +272,16 @@ public sealed class CommandRunner : IDisposable
     {
         try
         {
-            Process.Start(new ProcessStartInfo(file, args) { UseShellExecute = true, WorkingDirectory = dir, Verb = verb ?? "" })?.Dispose();
+            Process.Start(new ProcessStartInfo(file, args)
+            {
+                UseShellExecute = true, WorkingDirectory = dir, Verb = verb ?? "",
+                WindowStyle = show switch
+                {
+                    SW_SHOWMAXIMIZED => ProcessWindowStyle.Maximized,
+                    SW_SHOWMINIMIZED => ProcessWindowStyle.Minimized,
+                    _ => ProcessWindowStyle.Normal,
+                },
+            })?.Dispose();
         }
         catch (Win32Exception ex) when (ex.NativeErrorCode == 1223) { }
         catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)

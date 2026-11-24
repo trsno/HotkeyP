@@ -174,12 +174,16 @@ public sealed class MacroPlayer
     void RestoreHeldModifiers()
     {
         bool lctrl = false;
+        var pressed = new bool[PhysicalModifiers.Length];
+        // AltGr is reported as LCtrl+RAlt; without the hook do not re-press the fake LCtrl (C++ restoreShift)
+        bool altGr = !PhysicalKeys.HookActive && heldBefore[Array.IndexOf(PhysicalModifiers, VK_RMENU)];
         for (int i = 0; i < PhysicalModifiers.Length; i++)
         {
             // with the hook we know whether the user still holds the key; without it GetAsyncKeyState already
             // reads "up" after our injected key-up, so the state before the macro is the best information
             bool held = heldBefore[i] && (!PhysicalKeys.HookActive || PhysicalKeys.IsDown(PhysicalModifiers[i]));
-            if (held) { KeyDown(PhysicalModifiers[i]); if (PhysicalModifiers[i] == VK_LCONTROL) lctrl = true; }
+            if (altGr && PhysicalModifiers[i] == VK_LCONTROL) held = false;
+            if (held) { KeyDown(PhysicalModifiers[i]); pressed[i] = true; if (PhysicalModifiers[i] == VK_LCONTROL) lctrl = true; }
         }
         if ((GetAsyncKeyState(VK_LWIN) < 0 || GetAsyncKeyState(VK_RWIN) < 0 || GetAsyncKeyState(VK_LMENU) < 0) && !lctrl)
         {
@@ -187,6 +191,10 @@ public sealed class MacroPlayer
             KeyDown(VK_CONTROL);
             KeyUp(VK_CONTROL);
         }
+        // the user may have released a key between reading its state and pressing it again
+        if (PhysicalKeys.HookActive)
+            for (int i = 0; i < PhysicalModifiers.Length; i++)
+                if (pressed[i] && !PhysicalKeys.IsDown(PhysicalModifiers[i])) KeyUp(PhysicalModifiers[i]);
     }
 
     static void PostMessage(IntPtr hWnd, int msg, int wParam, int lParam)
