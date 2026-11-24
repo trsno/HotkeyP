@@ -51,13 +51,8 @@ public partial class MainWindow : Window
             s.WindowWidth = Width; s.WindowHeight = Height; s.WindowLeft = Left; s.WindowTop = Top;
         }
         s.Save();
-        if (!app.IsExiting && s.CloseToTray && s.ShowTrayIcon)
-        {
-            // keep running in the notification area
-            e.Cancel = true;
-            Hide();
-            return;
-        }
+        // with "close to tray" the window really closes (freeing its memory) and HotkeyP keeps running in the
+        // notification area; the tray icon creates a new window when needed
         base.OnClosing(e);
         if (!app.IsExiting && !(s.CloseToTray && s.ShowTrayIcon)) app.Exit();
     }
@@ -65,7 +60,8 @@ public partial class MainWindow : Window
     protected override void OnStateChanged(EventArgs e)
     {
         base.OnStateChanged(e);
-        if (WindowState == WindowState.Minimized && app.Settings.MinimizeToTray && app.Settings.ShowTrayIcon) Hide();
+        if (WindowState == WindowState.Minimized && app.Settings.MinimizeToTray && app.Settings.ShowTrayIcon)
+            Dispatcher.BeginInvoke(Close);
     }
 
     // ------------------------------------------------------------------ list and navigation

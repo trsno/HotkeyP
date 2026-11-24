@@ -26,7 +26,11 @@ public sealed class AppSettings
     public double? WindowLeft { get; set; }
     public double? WindowTop { get; set; }
 
-    public static string Folder { get; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "HotkeyP");
+    /// <summary>Settings folder; HOTKEYP_DATA points a test instance at a folder of its own.</summary>
+    public static string Folder { get; } = DataOverride ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "HotkeyP");
+
+    /// <summary>Separate data folder for tests (also a separate single instance, log and no registry import).</summary>
+    public static string? DataOverride { get; } = Environment.GetEnvironmentVariable("HOTKEYP_DATA") is { Length: > 0 } d ? d : null;
     static string SettingsPath => Path.Combine(Folder, "settings.json");
     public static string DefaultHotkeysPath => Path.Combine(Folder, "hotkeys.htk");
 
@@ -57,6 +61,7 @@ public sealed class AppSettings
     static AppSettings ImportFromOriginal()
     {
         var s = new AppSettings();
+        if (DataOverride != null) return s;
         using var key = Registry.CurrentUser.OpenSubKey(@"Software\Petr Lastovicka\hotkey");
         if (key == null) return s;
         if (key.GetValue("file") is string f && f.Length > 0) s.File = f;

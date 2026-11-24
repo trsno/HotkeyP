@@ -32,6 +32,8 @@ public sealed class AppController : IAppHost, IDisposable
     public void Start(bool hidden, string? file)
     {
         Settings = AppSettings.Load();
+        // the startup entry in the registry is the truth (it may have been set outside the app)
+        if (AppSettings.DataOverride == null) Settings.StartWithWindows = AppSettings.IsStartWithWindows();
         ApplyTheme();
         Runner = new CommandRunner(this, () => snapshot);
         Engine = new HotkeyEngine(Runner.IsActive, Runner.OnTriggered);
@@ -117,6 +119,8 @@ public sealed class AppController : IAppHost, IDisposable
         Settings.Save();
         ApplyTheme();
         if (tray != null) tray.Visible = Settings.ShowTrayIcon && !Runner.TrayIconHidden;
+        // a test instance (HOTKEYP_DATA) never touches the startup entry; the setting only changes when it differs
+        if (AppSettings.DataOverride == null && Settings.StartWithWindows != AppSettings.IsStartWithWindows())
         try { AppSettings.SetStartWithWindows(Settings.StartWithWindows, Environment.ProcessPath!); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException) { Log.Error(ex); }
         Apply();
@@ -158,7 +162,12 @@ public sealed class AppController : IAppHost, IDisposable
         if (mainWindow == null)
         {
             mainWindow = new MainWindow(this);
-            mainWindow.Closed += (_, _) => { mainWindow = null; MainWindowHandle = IntPtr.Zero; };
+            mainWindow.Closed += (_, _) =>
+            {
+                mainWindow = null;
+                MainWindowHandle = IntPtr.Zero;
+                if (!exiting) app.Dispatcher.BeginInvoke(TrimMemory, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+            };
             mainWindow.Show();
             MainWindowHandle = new System.Windows.Interop.WindowInteropHelper(mainWindow).Handle;
         }
@@ -226,6 +235,17 @@ public sealed class AppController : IAppHost, IDisposable
 
     public void AddRestoreTrayIcon(string tooltip, IntPtr icon, Action restore) => Ui(() =>
         TrayIcon.AddRestoreIcon(tooltip, icon, () => Runner.Post(restore)));
+
+    /// <summary>After the main window closes, HotkeyP only waits for hotkeys; give the window's memory back to Windows.</summary>
+    static void TrimMemory()
+    {
+        GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, blocking: true, compacting: true);
+        GC.WaitForPendingFinalizers();
+        SetProcessWorkingSetSize(Process.GetCurrentProcess().Handle, -1, -1);
+    }
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+    static extern bool SetProcessWorkingSetSize(IntPtr process, nint min, nint max);
 
     public void Dispose()
     {

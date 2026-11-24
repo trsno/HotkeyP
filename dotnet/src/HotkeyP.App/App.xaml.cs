@@ -1,12 +1,13 @@
 ﻿// HotkeyP .NET port. Based on HotkeyP (C) Petr Lastovicka, GNU General Public License.
 using System.Windows;
 using HotkeyP.Engine;
+using HotkeyP.Model;
 
 namespace HotkeyP.App;
 
 public partial class App : Application
 {
-    const string InstanceName = "HotkeyP-5-single-instance";
+    static readonly string InstanceName = "HotkeyP-5-single-instance" + (AppSettings.DataOverride is string d ? "-" + d.Replace('\\', '_').Replace(':', '_') : "");
     Mutex? instanceMutex;
     EventWaitHandle? showEvent;
     AppController? controller;

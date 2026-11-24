@@ -6,7 +6,9 @@ public static class Log
 {
     static readonly object sync = new();
     public static string Path { get; } = System.IO.Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "HotkeyP", "hotkeyp.log");
+        Environment.GetEnvironmentVariable("HOTKEYP_DATA") is { Length: > 0 } d ? d
+            : System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "HotkeyP"),
+        "hotkeyp.log");
 
     public static void Error(Exception ex) => Write("ERROR " + ex);
     public static void Info(string message) => Write(message);

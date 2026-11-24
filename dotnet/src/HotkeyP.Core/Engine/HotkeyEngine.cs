@@ -48,7 +48,9 @@ public sealed class HotkeyEngine : IDisposable
     readonly HookProc keyboardProc, mouseProc;
     int buttons = MouseButtons.Empty, delayedButtons = MouseButtons.Empty, ignoredButtons;
     bool preventWinMenu;
-    UIntPtr delayTimer;
+    UIntPtr delayTimer, refreshTimer;
+    int usedButtons; // bit per button id that appears in some mouse hotkey
+    const uint RefreshInterval = 5000;
 
     public HotkeyEngine(Func<Hotkey, bool> isActive, Action<Hotkey, TriggerKind> triggered)
     {
@@ -150,6 +152,9 @@ public sealed class HotkeyEngine : IDisposable
         threadId = GetCurrentThreadId();
         // create the message queue before anyone posts to it
         PeekMessage(out _, IntPtr.Zero, 0, 0, 0);
+        // Windows silently removes a low-level hook whose callback once took too long, and other programs' hooks
+        // installed later run first; reinstalling now and then keeps HotkeyP working (C++ "hookRefresh")
+        refreshTimer = SetTimer(IntPtr.Zero, UIntPtr.Zero, RefreshInterval, IntPtr.Zero);
         started.Set();
         while (GetMessage(out var msg, IntPtr.Zero, 0, 0) > 0)
         {
@@ -166,6 +171,7 @@ public sealed class HotkeyEngine : IDisposable
                     break;
                 case 0x113: // WM_TIMER
                     if (msg.wParam == (IntPtr)(nuint)delayTimer) UnDelayButtons();
+                    else if (msg.wParam == (IntPtr)(nuint)refreshTimer) RefreshHooks();
                     break;
                 default:
                     TranslateMessage(ref msg);
@@ -182,10 +188,16 @@ public sealed class HotkeyEngine : IDisposable
         UnregisterAll();
         if (paused) return;
         hooked.Clear();
+        usedButtons = 0;
         bool needKeyboardHook = options.Hook != HookMode.Off || blockedKeys.Any(b => b), needMouseHook = false;
         foreach (var hk in hotkeys)
         {
-            if (hk.VKey == Hotkey.VkMouse) { needMouseHook = true; continue; }
+            if (hk.VKey == Hotkey.VkMouse)
+            {
+                needMouseHook = true;
+                foreach (int b in MouseButtons.Enumerate(hk.ScanCode)) usedButtons |= 1 << b;
+                continue;
+            }
             if (hk.VKey <= 0 || hk.VKey >= 256) continue;
             if (KeyNeedsHook(hk.VKey, hk.Modifiers)) { hooked.Add(hk); continue; }
             int id = ((int)hk.Modifiers << 8) | hk.VKey;
@@ -218,6 +230,21 @@ public sealed class HotkeyEngine : IDisposable
             || mod == (Modifiers.Win | Modifiers.Shift) && vk is 'C' or 'M' or 'S' or 'T' or 'V' or 0x28 or 0x25 or 0x27 or 0x20 or 0x26
             || mod == (Modifiers.Win | Modifiers.Alt) && vk is 'B' or 'R' or 0x28 or 0x2C or 0x26
             || mod == (Modifiers.Win | Modifiers.Control | Modifiers.Shift) && vk == 'B';
+    }
+
+    /// <summary>Installs fresh hooks before removing the old ones, so no input passes unhooked in between.</summary>
+    void RefreshHooks()
+    {
+        if (keyboardHook != IntPtr.Zero)
+        {
+            var h = SetWindowsHookEx(WH_KEYBOARD_LL, keyboardProc, GetModuleHandle(null), 0);
+            if (h != IntPtr.Zero) { UnhookWindowsHookEx(keyboardHook); keyboardHook = h; }
+        }
+        if (mouseHook != IntPtr.Zero)
+        {
+            var h = SetWindowsHookEx(WH_MOUSE_LL, mouseProc, GetModuleHandle(null), 0);
+            if (h != IntPtr.Zero) { UnhookWindowsHookEx(mouseHook); mouseHook = h; }
+        }
     }
 
     void UnregisterAll()
@@ -373,6 +400,7 @@ public sealed class HotkeyEngine : IDisposable
                 var wheel = msg == WM_MOUSEWHEEL
                     ? (delta < 0 ? MouseButton.WheelDown : MouseButton.WheelUp)
                     : (delta < 0 ? MouseButton.WheelLeft : MouseButton.WheelRight);
+                if ((usedButtons & (1 << (int)wheel)) == 0 && delayedButtons == MouseButtons.Empty) return false; // fast path
                 int seq = MouseButtons.Down((int)wheel, buttons);
                 if (FireMouse(seq))
                 {
@@ -389,7 +417,11 @@ public sealed class HotkeyEngine : IDisposable
         }
         if (down < 15)
         {
+            ignoredButtons &= ~(1 << down); // a release we never saw must not swallow the next one
+            DropReleasedButtons();
             buttons = MouseButtons.Down(down, buttons);
+            // fast path: a button no hotkey uses, with nothing held back, goes straight on
+            if ((usedButtons & (1 << down)) == 0 && delayedButtons == MouseButtons.Empty) return false;
             if ((delayedButtons != MouseButtons.Empty || !options.NotDelayedButtons.Contains(down)) && IsPartOfMouseHotkey(buttons))
             {
                 // wait whether the user presses the rest of a button combination
@@ -426,6 +458,30 @@ public sealed class HotkeyEngine : IDisposable
             }
         }
         return false;
+    }
+
+    /// <summary>
+    /// Forgets buttons whose release was missed (UAC prompt, lock screen, elevated window), otherwise every later press
+    /// would look like part of a combination. Buttons HotkeyP swallowed are skipped: Windows never saw them pressed.
+    /// </summary>
+    void DropReleasedButtons()
+    {
+        if (buttons == MouseButtons.Empty) return;
+        bool swapped = GetSystemMetrics(23 /*SM_SWAPBUTTON*/) != 0;
+        foreach (int b in MouseButtons.Enumerate(buttons).ToList())
+        {
+            if ((ignoredButtons & (1 << b)) != 0 || MouseButtons.Contains(delayedButtons, b)) continue;
+            int vk = b switch
+            {
+                (int)MouseButton.Left => swapped ? 0x02 : 0x01,
+                (int)MouseButton.Right => swapped ? 0x01 : 0x02,
+                (int)MouseButton.Middle => 0x04,
+                (int)MouseButton.X1 => 0x05,
+                (int)MouseButton.X2 => 0x06,
+                _ => 0,
+            };
+            if (vk != 0 && GetAsyncKeyState(vk) >= 0) buttons = MouseButtons.Up(b, buttons);
+        }
     }
 
     void IgnoreDelayed()
@@ -476,6 +532,7 @@ public sealed class HotkeyEngine : IDisposable
     }
 
     [DllImport("user32.dll")] static extern bool PeekMessage(out MSG msg, IntPtr hWnd, uint min, uint max, uint remove);
+    [DllImport("user32.dll")] static extern int GetSystemMetrics(int index);
     [DllImport("user32.dll")] static extern UIntPtr SetTimer(IntPtr hWnd, UIntPtr id, uint elapse, IntPtr proc);
     [DllImport("user32.dll")] static extern bool KillTimer(IntPtr hWnd, UIntPtr id);
 }

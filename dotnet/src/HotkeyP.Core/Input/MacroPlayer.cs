@@ -160,10 +160,15 @@ public sealed class MacroPlayer
     void ReleaseHeldModifiers()
     {
         for (int i = 0; i < PhysicalModifiers.Length; i++)
-        {
             heldBefore[i] = GetAsyncKeyState(PhysicalModifiers[i]) < 0;
-            if (heldBefore[i]) KeyUp(PhysicalModifiers[i]);
+        // releasing a lone Win or Alt would open the Start menu or a menu bar (C++ forceNoShift: preventWinMenu)
+        if (GetAsyncKeyState(VK_LWIN) < 0 || GetAsyncKeyState(VK_RWIN) < 0 || GetAsyncKeyState(VK_LMENU) < 0 || GetAsyncKeyState(VK_RMENU) < 0)
+        {
+            KeyDown(VK_CONTROL);
+            KeyUp(VK_CONTROL);
         }
+        for (int i = 0; i < PhysicalModifiers.Length; i++)
+            if (heldBefore[i]) KeyUp(PhysicalModifiers[i]);
     }
 
     void RestoreHeldModifiers()
