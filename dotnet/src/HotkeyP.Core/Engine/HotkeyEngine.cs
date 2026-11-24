@@ -28,7 +28,6 @@ public sealed class EngineOptions
 /// </summary>
 public sealed class HotkeyEngine : IDisposable
 {
-    const uint MOD_NOREPEAT = 0x4000;
     const int VK_SHIFT = 0x10, VK_CONTROL = 0x11, VK_MENU = 0x12, VK_LWIN = 0x5B, VK_RWIN = 0x5C, VK_LMENU = 0xA4;
     const int TimerMouseDelay = 1;
 
@@ -69,6 +68,17 @@ public sealed class HotkeyEngine : IDisposable
     public bool DisableMouse { get; set; }
     /// <summary>Hotkeys are paused, e.g. while the user records a new key in the editor.</summary>
     public bool Paused { get; set; }
+
+    readonly bool[] blockedKeys = new bool[256];
+
+    /// <summary>Keys that the keyboard hook swallows (command "Disable key"). Installs the hook if needed.</summary>
+    public void SetKeyBlocked(int vk, bool blocked) => Invoke(() =>
+    {
+        blockedKeys[vk & 255] = blocked;
+        Register();
+    });
+
+    public bool IsKeyBlocked(int vk) => blockedKeys[vk & 255];
 
     public void SetHotkeys(IEnumerable<Hotkey> list, EngineOptions? opts = null)
     {
@@ -126,7 +136,7 @@ public sealed class HotkeyEngine : IDisposable
     {
         UnregisterAll();
         hooked.Clear();
-        bool needKeyboardHook = options.Hook != HookMode.Off, needMouseHook = false;
+        bool needKeyboardHook = options.Hook != HookMode.Off || blockedKeys.Any(b => b), needMouseHook = false;
         foreach (var hk in hotkeys)
         {
             if (hk.VKey == Hotkey.VkMouse) { needMouseHook = true; continue; }
@@ -252,6 +262,7 @@ public sealed class HotkeyEngine : IDisposable
     {
         bool up = msg is WM_KEYUP or WM_SYSKEYUP;
         PhysicalKeys.Set(vk, !up);
+        if (blockedKeys[vk & 255]) return true;
 
         if (preventWinMenu && up && vk is VK_LWIN or VK_RWIN or VK_LMENU)
         {
