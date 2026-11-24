@@ -203,15 +203,23 @@ sealed class VolumeController
             }
         }
         bool isDefault = defaultId != null ? id == defaultId : string.Equals(names.Desc, "Speakers", StringComparison.OrdinalIgnoreCase);
-        // N: selects the N-th device; without it, "Mixer" means the default device
-        bool selected = rec == req.Record && (req.Device == 0 || req.Device - 1 == index);
-        if (selected && (Eq(names.Desc) || Eq(names.Friendly) || req.IsMixer && (isDefault || req.Device > 0)))
-            EndpointVolume(dev);
-        if (selected && !rec && !req.IsMixer && (req.Device > 0 || isDefault))
-            Topology(dev);
+        var (volume, topology) = Select(req, rec, index, isDefault, names.Desc, names.Friendly);
+        if (volume) EndpointVolume(dev);
+        if (topology) Topology(dev);
     }
 
-    bool Eq(string? name) => name != null && name.Equals(req.Name, StringComparison.OrdinalIgnoreCase);
+    /// <summary>
+    /// Whether an endpoint's own volume matches the request, and whether its topology is searched for Wave, Bass,
+    /// Treble. N: selects the N-th device of the direction; without it, "Mixer" means the default device.
+    /// </summary>
+    public static (bool Volume, bool Topology) Select(VolumeRequest req, bool rec, int index, bool isDefault, string? desc, string? friendly)
+    {
+        bool selected = rec == req.Record && (req.Device == 0 || req.Device - 1 == index);
+        bool Eq(string? name) => name != null && name.Equals(req.Name, StringComparison.OrdinalIgnoreCase);
+        bool volume = selected && (Eq(desc) || Eq(friendly) || req.IsMixer && (isDefault || req.Device > 0));
+        bool topology = selected && !rec && !req.IsMixer && (req.Device > 0 || isDefault);
+        return (volume, topology);
+    }
 
     static string? PropString(IPropertyStore props, PROPERTYKEY key)
     {

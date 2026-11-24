@@ -81,6 +81,31 @@ public class MediaCommandsTests
     }
 
     [Fact]
+    public void EndpointSelection()
+    {
+        var mixer = VolumeRequest.ForCommand(13, "");
+        Assert.Equal((true, false), VolumeController.Select(mixer, false, 1, true, "Speakers", "Speakers (USB)"));
+        Assert.Equal((false, false), VolumeController.Select(mixer, false, 0, false, "Headphones", null));
+        Assert.Equal((false, false), VolumeController.Select(mixer, true, 0, true, "Microphone", null)); // capture needs R:
+
+        var byName = VolumeRequest.ForCommand(13, "headphones");
+        Assert.Equal((true, false), VolumeController.Select(byName, false, 3, false, "Headphones", null));
+        Assert.Equal((false, true), VolumeController.Select(byName, false, 0, true, "Speakers", null)); // topology of the default device
+
+        var second = VolumeRequest.ForCommand(13, "2:");
+        Assert.Equal((false, false), VolumeController.Select(second, false, 0, true, "Speakers", null));
+        Assert.Equal((true, false), VolumeController.Select(second, false, 1, false, "Headphones", null));
+
+        var mic = VolumeRequest.ForCommand(13, "R:Microphone");
+        Assert.Equal((true, false), VolumeController.Select(mic, true, 0, false, "Microphone", null));
+        Assert.Equal((false, false), VolumeController.Select(mic, false, 0, true, "Microphone", null));
+
+        var wave = VolumeRequest.ForCommand(15, "");
+        Assert.Equal((false, true), VolumeController.Select(wave, false, 0, true, "Speakers", null));
+        Assert.Equal((false, false), VolumeController.Select(wave, false, 1, false, "Headphones", null));
+    }
+
+    [Fact]
     public void VolumeDisplayText()
     {
         var mixer = VolumeRequest.ForCommand(13, "");
