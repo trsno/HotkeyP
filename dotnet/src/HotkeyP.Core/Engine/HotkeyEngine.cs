@@ -66,8 +66,53 @@ public sealed class HotkeyEngine : IDisposable
     public bool DisableAll { get; set; }
     public bool DisableKeyboard { get; set; }
     public bool DisableMouse { get; set; }
-    /// <summary>Hotkeys are paused, e.g. while the user records a new key in the editor.</summary>
-    public bool Paused { get; set; }
+    bool paused;
+
+    /// <summary>
+    /// Hotkeys are released (unregistered and not matched by the hooks), e.g. while the user records a new key in the editor.
+    /// </summary>
+    public bool Paused
+    {
+        get => paused;
+        set
+        {
+            if (paused == value) return;
+            paused = value;
+            Invoke(() => { if (paused) UnregisterAll(); else Register(); });
+        }
+    }
+
+    Action<int, int, Modifiers>? capture;
+    readonly bool[] captureDown = new bool[256];
+
+    /// <summary>
+    /// Records keys for the hotkey editor: every key press (with the modifiers held) is reported to <paramref name="onKey"/>
+    /// as (virtual key, scan code, modifiers) and swallowed, so even Win+E or Alt+Tab can be recorded. Pass null to stop.
+    /// The callback runs on the engine thread.
+    /// </summary>
+    public void Capture(Action<int, int, Modifiers>? onKey) => Invoke(() =>
+    {
+        capture = onKey;
+        Array.Clear(captureDown);
+        if (onKey != null && keyboardHook == IntPtr.Zero)
+            keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, keyboardProc, GetModuleHandle(null), 0);
+        if (onKey == null) Register();
+    });
+
+    bool OnCapture(bool up, int vk, int scan)
+    {
+        captureDown[vk & 255] = !up;
+        if (up) return true;
+        bool d(int k) => captureDown[k];
+        var mod = Modifiers.None;
+        if (d(0xA0) || d(0xA1) || d(VK_SHIFT)) mod |= Modifiers.Shift;
+        if (d(0xA2) || d(0xA3) || d(VK_CONTROL)) mod |= Modifiers.Control;
+        if (d(0xA4) || d(0xA5) || d(VK_MENU)) mod |= Modifiers.Alt;
+        if (d(VK_LWIN) || d(VK_RWIN)) mod |= Modifiers.Win;
+        // modifier presses are reported too, so the editor can show "Ctrl+..." while the user is still pressing keys
+        try { capture!(vk, scan, mod); } catch (Exception ex) { Log.Error(ex); }
+        return true;
+    }
 
     readonly bool[] blockedKeys = new bool[256];
 
@@ -135,6 +180,7 @@ public sealed class HotkeyEngine : IDisposable
     void Register()
     {
         UnregisterAll();
+        if (paused) return;
         hooked.Clear();
         bool needKeyboardHook = options.Hook != HookMode.Off || blockedKeys.Any(b => b), needMouseHook = false;
         foreach (var hk in hotkeys)
@@ -154,7 +200,7 @@ public sealed class HotkeyEngine : IDisposable
         }
         if (needKeyboardHook && keyboardHook == IntPtr.Zero)
             keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, keyboardProc, GetModuleHandle(null), 0);
-        if (!needKeyboardHook) UnhookKeyboard();
+        if (!needKeyboardHook && capture == null) UnhookKeyboard();
         PhysicalKeys.HookActive = keyboardHook != IntPtr.Zero;
         if (needMouseHook && mouseHook == IntPtr.Zero)
             mouseHook = SetWindowsHookEx(WH_MOUSE_LL, mouseProc, GetModuleHandle(null), 0);
@@ -262,6 +308,7 @@ public sealed class HotkeyEngine : IDisposable
     {
         bool up = msg is WM_KEYUP or WM_SYSKEYUP;
         PhysicalKeys.Set(vk, !up);
+        if (capture != null) return OnCapture(up, vk, scan);
         if (blockedKeys[vk & 255]) return true;
 
         if (preventWinMenu && up && vk is VK_LWIN or VK_RWIN or VK_LMENU)

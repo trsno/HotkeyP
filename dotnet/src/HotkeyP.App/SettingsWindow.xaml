@@ -1,0 +1,90 @@
+<Window x:Class="HotkeyP.App.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Settings" Width="560" Height="640" MinWidth="460"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24,16,24,8">
+            <StackPanel>
+                <TextBlock Text="Settings" FontSize="22" FontWeight="SemiBold" Margin="0,0,0,4" />
+
+                <TextBlock Text="General" Style="{StaticResource SectionHeader}" />
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <CheckBox x:Name="StartBox" Content="Start HotkeyP when I sign in to Windows" Margin="0,4" />
+                        <CheckBox x:Name="TrayIconBox" Content="Show icon in the notification area" Margin="0,4" />
+                        <CheckBox x:Name="CloseToTrayBox" Content="Closing the window keeps HotkeyP running" Margin="24,4,0,4" />
+                        <CheckBox x:Name="MinToTrayBox" Content="Minimizing hides the window" Margin="24,4,0,4" />
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource Card}">
+                    <DockPanel>
+                        <ComboBox x:Name="ThemeBox" DockPanel.Dock="Right" Width="150">
+                            <ComboBoxItem Content="Use Windows setting" />
+                            <ComboBoxItem Content="Light" />
+                            <ComboBoxItem Content="Dark" />
+                        </ComboBox>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="App theme" />
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
+
+                <TextBlock Text="Keyboard and mouse" Style="{StaticResource SectionHeader}" />
+                <Border Style="{StaticResource Card}">
+                    <DockPanel>
+                        <ComboBox x:Name="HookBox" DockPanel.Dock="Right" Width="190">
+                            <ComboBoxItem Content="Off" />
+                            <ComboBoxItem Content="When needed" />
+                            <ComboBoxItem Content="Also media keys" />
+                            <ComboBoxItem Content="All keys" />
+                        </ComboBox>
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="Keyboard hook" />
+                            <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap"
+                                       Text="Needed for Win key shortcuts and keys other programs already use. 'When needed' is recommended." />
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <DockPanel>
+                            <TextBlock x:Name="DelayText" DockPanel.Dock="Right" Width="70" TextAlignment="Right" VerticalAlignment="Center" />
+                            <StackPanel>
+                                <TextBlock Text="Mouse button combination delay" />
+                                <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap"
+                                           Text="How long a button press waits for the rest of a mouse hotkey before it is passed on." />
+                            </StackPanel>
+                        </DockPanel>
+                        <Slider x:Name="DelaySlider" Minimum="100" Maximum="1500" TickFrequency="50" IsSnapToTickEnabled="True"
+                                Margin="0,8,0,0" ValueChanged="Delay_Changed" />
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Text="About" Style="{StaticResource SectionHeader}" />
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock x:Name="VersionText" FontWeight="SemiBold" />
+                        <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0"
+                                   Text="Based on HotkeyP by Petr Laštovička. Free software under the GNU General Public License." />
+                        <TextBlock Margin="0,8,0,0">
+                            <Hyperlink NavigateUri="https://github.com/plastovicka/HotkeyP" RequestNavigate="Link_Click">Original project on GitHub</Hyperlink>
+                            <Run Text="  ·  " />
+                            <Hyperlink x:Name="LogLink" RequestNavigate="Log_Click" NavigateUri="about:log">Open log file</Hyperlink>
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+        <Border Grid.Row="1" Background="{DynamicResource LayerFillColorAltBrush}" BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}" BorderThickness="0,1,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="24,14">
+                <Button Content="Save" Width="110" IsDefault="True" Style="{DynamicResource AccentButtonStyle}" Click="Save_Click" Margin="0,0,8,0" />
+                <Button Content="Cancel" Width="110" IsCancel="True" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

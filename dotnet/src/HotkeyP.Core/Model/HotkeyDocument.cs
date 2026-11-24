@@ -16,6 +16,46 @@ public sealed class HotkeyDocument
     /// <summary>Category names; index 0 is the default category and is not stored in the file.</summary>
     public List<string> Categories { get; } = new() { "" };
 
+    /// <summary>Inserts a hotkey; multi commands keep pointing at the same hotkeys.</summary>
+    public void Insert(int index, Hotkey hk)
+    {
+        Renumber(i => i >= index ? i + 1 : i);
+        Hotkeys.Insert(index, hk);
+    }
+
+    /// <summary>Removes a hotkey; references to it are dropped from multi commands, later ones renumbered.</summary>
+    public void RemoveAt(int index)
+    {
+        Hotkeys.RemoveAt(index);
+        Renumber(i => i == index ? null : i > index ? i - 1 : i);
+    }
+
+    /// <summary>Moves a hotkey to another position; multi commands keep pointing at the same hotkeys.</summary>
+    public void Move(int from, int to)
+    {
+        if (from == to) return;
+        var hk = Hotkeys[from];
+        Hotkeys.RemoveAt(from);
+        Hotkeys.Insert(to, hk);
+        Renumber(i => i == from ? to : from < to ? (i > from && i <= to ? i - 1 : i) : (i >= to && i < from ? i + 1 : i));
+    }
+
+    /// <summary>Rewrites the 1-based hotkey numbers in "Multi command" and "Commands list" parameters.</summary>
+    void Renumber(Func<int, int?> map)
+    {
+        foreach (var hk in Hotkeys)
+        {
+            if (hk.Command is not (61 or 70)) continue;
+            var nums = new List<string>();
+            foreach (var part in hk.Args.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (!int.TryParse(part, out int n) || n == 0) break;
+                if (map(n - 1) is int m) nums.Add((m + 1).ToString(CultureInfo.InvariantCulture));
+            }
+            hk.Args = string.Join(' ', nums);
+        }
+    }
+
     public static HotkeyDocument Load(string path) => Parse(File.ReadAllBytes(path));
 
     public void Save(string path)
