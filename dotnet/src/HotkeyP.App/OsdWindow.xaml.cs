@@ -33,9 +33,9 @@ public partial class OsdWindow : Window
         lastText = text;
         Glyph.Text = kind switch
         {
-            OsdKind.Volume => level is 0 ? "" : "",
-            OsdKind.DiskFree => "",
-            _ => "",
+            OsdKind.Volume => level is 0 ? "\uE74F" : "\uE767",
+            OsdKind.DiskFree => "\uEDA2",
+            _ => "\uE8BD",
         };
         if (kind == OsdKind.DiskFree)
         {

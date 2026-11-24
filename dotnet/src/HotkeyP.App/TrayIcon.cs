@@ -60,7 +60,7 @@ sealed class TrayIcon : IDisposable
             return mi;
         }
 
-        menu.Items.Add(Item("Open HotkeyP", "", app.ShowMainWindow));
+        menu.Items.Add(Item("Open HotkeyP", "\uE737", app.ShowMainWindow));
         var trayHotkeys = app.Document.Hotkeys.Where(h => h.TrayMenu).ToList();
         if (trayHotkeys.Count > 0)
         {
@@ -68,7 +68,7 @@ sealed class TrayIcon : IDisposable
             foreach (var hk in trayHotkeys)
             {
                 var h = hk;
-                menu.Items.Add(Item(CommandRunner.DisplayName(h), h.IsCommand ? "" : "", () => app.Runner.Post(() => app.Runner.Execute(h))));
+                menu.Items.Add(Item(CommandRunner.DisplayName(h), h.IsCommand ? "\uE756" : "\uE7AC", () => app.Runner.Post(() => app.Runner.Execute(h))));
             }
         }
         menu.Items.Add(new Separator());
@@ -76,7 +76,7 @@ sealed class TrayIcon : IDisposable
         enabled.Click += (_, _) => app.HotkeysEnabled = enabled.IsChecked;
         menu.Items.Add(enabled);
         menu.Items.Add(new Separator());
-        menu.Items.Add(Item("Exit", "", app.Exit));
+        menu.Items.Add(Item("Exit", "\uE7E8", app.Exit));
 
         // a context menu needs a foreground window of ours to close properly when the user clicks elsewhere
         var host = MenuHost;

@@ -81,22 +81,22 @@ public partial class MainWindow : Window
         static bool IsProgram(Hotkey h) => !h.IsCommand && h.Exe.Trim().Trim('"').EndsWith(".exe", StringComparison.OrdinalIgnoreCase);
         var items = new List<NavItem>
         {
-            new() { Name = "All hotkeys", Glyph = "" },
+            new() { Name = "All hotkeys", Glyph = "\uE8FD" },
             new() { Name = "Filters", IsHeader = true },
-            new() { Name = "Keyboard", Glyph = "", Filter = h => h.VKey is > 0 and < 256 },
-            new() { Name = "Mouse", Glyph = "", Filter = h => h.VKey == Hotkey.VkMouse },
-            new() { Name = "Commands", Glyph = "", Filter = h => h.IsCommand },
-            new() { Name = "Programs", Glyph = "", Filter = IsProgram },
-            new() { Name = "Documents", Glyph = "", Filter = h => !h.IsCommand && !IsProgram(h) && !IsWeb(h) },
-            new() { Name = "Web links", Glyph = "", Filter = IsWeb },
-            new() { Name = "Run at startup", Glyph = "", Filter = h => h.AutoStart },
-            new() { Name = "Tray menu", Glyph = "", Filter = h => h.TrayMenu },
+            new() { Name = "Keyboard", Glyph = "\uE765", Filter = h => h.VKey is > 0 and < 256 },
+            new() { Name = "Mouse", Glyph = "\uE962", Filter = h => h.VKey == Hotkey.VkMouse },
+            new() { Name = "Commands", Glyph = "\uE756", Filter = h => h.IsCommand },
+            new() { Name = "Programs", Glyph = "\uE7AC", Filter = IsProgram },
+            new() { Name = "Documents", Glyph = "\uE8A5", Filter = h => !h.IsCommand && !IsProgram(h) && !IsWeb(h) },
+            new() { Name = "Web links", Glyph = "\uE774", Filter = IsWeb },
+            new() { Name = "Run at startup", Glyph = "\uE7B5", Filter = h => h.AutoStart },
+            new() { Name = "Tray menu", Glyph = "\uE8A7", Filter = h => h.TrayMenu },
             new() { Name = "Categories", IsHeader = true },
         };
         for (int i = 0; i < doc.Categories.Count; i++)
         {
             int c = i;
-            items.Add(new NavItem { Name = c == 0 ? "General" : doc.Categories[c], Glyph = "", Category = c, Filter = h => h.Category == c });
+            items.Add(new NavItem { Name = c == 0 ? "General" : doc.Categories[c], Glyph = "\uE8B7", Category = c, Filter = h => h.Category == c });
         }
         foreach (var n in items) n.Count = n.IsHeader ? 0 : doc.Hotkeys.Count(n.Filter);
 

@@ -76,20 +76,20 @@ static class CommandGlyphs
         if (!hk.IsCommand)
         {
             var exe = hk.Exe.Trim();
-            if (exe.Contains("://") || exe.StartsWith("www.", StringComparison.OrdinalIgnoreCase)) return ""; // globe
-            return ""; // document
+            if (exe.Contains("://") || exe.StartsWith("www.", StringComparison.OrdinalIgnoreCase)) return "\uE774"; // globe
+            return "\uE8A5"; // document
         }
         return CommandCatalog.Get(hk.Command)?.Group switch
         {
-            CommandGroup.Window => "",
-            CommandGroup.Mouse => "",
-            CommandGroup.Keyboard => "",
-            CommandGroup.Audio => "",
-            CommandGroup.Display => "",
-            CommandGroup.Power => "",
-            CommandGroup.System => "",
-            CommandGroup.Drives => "",
-            _ => "",
+            CommandGroup.Window => "\uE737",
+            CommandGroup.Mouse => "\uE962",
+            CommandGroup.Keyboard => "\uE765",
+            CommandGroup.Audio => "\uE767",
+            CommandGroup.Display => "\uE7F4",
+            CommandGroup.Power => "\uE7E8",
+            CommandGroup.System => "\uE770",
+            CommandGroup.Drives => "\uEDA2",
+            _ => "\uE945",
         };
     }
 
