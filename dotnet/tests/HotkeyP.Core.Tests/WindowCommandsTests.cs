@@ -97,6 +97,19 @@ public class WindowCommandsTests
     }
 
     [Fact]
+    public void ShowDesktopMacroIsWinD()
+    {
+        Assert.Equal(
+            new HotkeyP.Input.MacroStep[]
+            {
+                new HotkeyP.Input.RepeatStep(),
+                new HotkeyP.Input.KeyStep(0x5B, HotkeyP.Input.KeyAction.Press),
+                new HotkeyP.Input.KeyStep('D', HotkeyP.Input.KeyAction.Press),
+            },
+            HotkeyP.Input.MacroParser.Parse(@"\rep\win\D"));
+    }
+
+    [Fact]
     public void NotifyIconDataHasWindowsSize()
     {
         Assert.Equal(IntPtr.Size == 8 ? 976 : 956, Marshal.SizeOf<NOTIFYICONDATAW>());

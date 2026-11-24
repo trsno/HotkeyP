@@ -11,7 +11,7 @@ using static HotkeyP.Native.NativeMethods;
 namespace HotkeyP.Commands;
 
 /// <summary>Commands of the Window group. Ported from command() in Commands.cpp and the helpers it calls.</summary>
-static class WindowCommands
+public static class WindowCommands
 {
     public static void Register(CommandTable t)
     {
@@ -328,6 +328,9 @@ static class WindowCommands
         static readonly object sync = new();
         static bool altDown, watching;
         static HookProc? hookProc; // keeps the delegate alive while the hook is installed
+        /// <summary>Safety: Alt is released this long after the last task switch even if the button-up was missed.</summary>
+        const int TimeoutMs = 5000;
+        static Timer? timeout;
 
         public static void Run(CommandContext c)
         {
@@ -343,7 +346,11 @@ static class WindowCommands
                 InputSender.KeyUp(0x09);
                 if (c.Command == 83) InputSender.KeyUp(InputSender.VK_SHIFT);
 
-                if (watching) return;
+                if (watching)
+                {
+                    timeout?.Change(TimeoutMs, Timeout.Infinite);
+                    return;
+                }
                 if (HoldsMouseButton(c.Hotkey))
                 {
                     watching = true;
@@ -377,8 +384,7 @@ static class WindowCommands
             var hook = SetWindowsHookEx(WH_MOUSE_LL, hookProc, GetModuleHandle(null), 0);
             if (hook != IntPtr.Zero)
             {
-                // safety: never leave Alt down for long if the button-up is missed
-                using var timeout = new Timer(_ => PostThreadMessage(threadId, WM_QUIT, IntPtr.Zero, IntPtr.Zero), null, 30000, Timeout.Infinite);
+                lock (sync) timeout = new Timer(_ => PostThreadMessage(threadId, WM_QUIT, IntPtr.Zero, IntPtr.Zero), null, TimeoutMs, Timeout.Infinite);
                 while (GetMessage(out var msg, IntPtr.Zero, 0, 0) > 0)
                 {
                     TranslateMessage(ref msg);
@@ -388,6 +394,8 @@ static class WindowCommands
             }
             lock (sync)
             {
+                timeout?.Dispose();
+                timeout = null;
                 if (altDown)
                 {
                     altDown = false;
