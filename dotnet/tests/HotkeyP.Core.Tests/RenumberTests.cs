@@ -65,3 +65,14 @@ public class MultiCommandParamTests
     public void RenumberLeavesUnparsableAlone()
         => Assert.Equal("abc", HotkeyP.Model.MultiCommandParam.Renumber("abc", i => i + 1));
 }
+
+public class DataOverrideTests
+{
+    [Fact]
+    public void FolderUsesOverrideWhenSet()
+    {
+        // static initializer order: Folder must see DataOverride
+        if (HotkeyP.Model.AppSettings.DataOverride is string d) Assert.Equal(d, HotkeyP.Model.AppSettings.Folder);
+        else Assert.EndsWith("HotkeyP", HotkeyP.Model.AppSettings.Folder);
+    }
+}
