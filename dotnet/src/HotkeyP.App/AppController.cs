@@ -108,7 +108,7 @@ public sealed class AppController : IAppHost, IDisposable
     void Apply()
     {
         snapshot = Document.Hotkeys.ToArray();
-        Engine.SetHotkeys(snapshot, new EngineOptions { Hook = Settings.Hook, MouseDelay = Settings.MouseDelay });
+        Engine.SetHotkeys(snapshot, new EngineOptions { Hook = Settings.Hook, MouseDelay = Settings.MouseDelay, NotDelayedButtons = Settings.NotDelayedButtons.ToHashSet() });
         Changed?.Invoke();
     }
 

@@ -17,6 +17,9 @@ public sealed class AppSettings
     public bool StartWithWindows { get; set; }
     public HookMode Hook { get; set; } = HookMode.WhenNeeded;
     public int MouseDelay { get; set; } = 600;
+    /// <summary>Mouse buttons passed to applications at once (not held back while a button combination may follow).
+    /// Button ids as in MouseButton: 0 left, 1 right, 4 middle, 5 X1, 6 X2.</summary>
+    public List<int> NotDelayedButtons { get; set; } = [0];
     public ThemeChoice Theme { get; set; } = ThemeChoice.System;
     public double WindowWidth { get; set; } = 960;
     public double WindowHeight { get; set; } = 620;
@@ -62,6 +65,10 @@ public sealed class AppSettings
         if (key.GetValue("trayicon") is int ti) s.ShowTrayIcon = ti != 0;
         if (key.GetValue("hook") is int h && Enum.IsDefined(typeof(HookMode), h)) s.Hook = (HookMode)h;
         if (key.GetValue("mouseDelay") is int md && md > 0) s.MouseDelay = md;
+        var nd = new List<int>();
+        foreach (var (name, id) in new[] { ("notDelayLeftButton", 0), ("notDelayRightButton", 1), ("notDelayM", 4), ("notDelayX1", 5), ("notDelayX2", 6) })
+            if (key.GetValue(name) is int v ? v != 0 : id == 0) nd.Add(id);
+        s.NotDelayedButtons = nd;
         return s;
     }
 

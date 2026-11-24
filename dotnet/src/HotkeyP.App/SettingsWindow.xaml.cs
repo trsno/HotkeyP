@@ -24,6 +24,8 @@ public partial class SettingsWindow : Window
         ThemeBox.SelectedIndex = (int)s.Theme;
         HookBox.SelectedIndex = (int)s.Hook;
         DelaySlider.Value = s.MouseDelay;
+        foreach (var cb in NotDelayPanel.Children.OfType<System.Windows.Controls.CheckBox>())
+            cb.IsChecked = s.NotDelayedButtons.Contains(int.Parse((string)cb.Tag));
         VersionText.Text = $"HotkeyP {typeof(SettingsWindow).Assembly.GetName().Version?.ToString(3)}";
         Delay_Changed(this, null!);
     }
@@ -43,6 +45,8 @@ public partial class SettingsWindow : Window
         s.Theme = (ThemeChoice)Math.Max(0, ThemeBox.SelectedIndex);
         s.Hook = (HookMode)Math.Max(0, HookBox.SelectedIndex);
         s.MouseDelay = (int)DelaySlider.Value;
+        s.NotDelayedButtons = NotDelayPanel.Children.OfType<System.Windows.Controls.CheckBox>()
+            .Where(cb => cb.IsChecked == true).Select(cb => int.Parse((string)cb.Tag)).ToList();
         app.SaveSettings();
         DialogResult = true;
     }

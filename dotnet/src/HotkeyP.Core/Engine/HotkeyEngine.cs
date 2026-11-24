@@ -321,7 +321,9 @@ public sealed class HotkeyEngine : IDisposable
         bool handled = false;
         foreach (var hk in hooked)
         {
-            if (hk.VKey != vk || ((hk.ScanCode ^ scan) & 0x1ff0000) != 0 && hk.ScanCode != 0) continue;
+            // the scan code tells apart keys sharing a virtual key (e.g. numpad Enter); input injected without a
+            // scan code (remote desktop, scripting tools) matches any
+            if (hk.VKey != vk || ((hk.ScanCode ^ scan) & 0x1ff0000) != 0 && hk.ScanCode != 0 && (scan & 0xff0000) != 0) continue;
             if (up)
             {
                 if (!isDown.Remove(hk)) continue;

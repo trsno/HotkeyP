@@ -55,8 +55,12 @@ public partial class OsdWindow : Window
         BeginAnimation(OpacityProperty, null);
         Opacity = 1;
         Show();
+        // the drive rows are generated during layout; size the window again once they exist
+        SizeToContent = SizeToContent.Manual;
+        SizeToContent = SizeToContent.WidthAndHeight;
         UpdateLayout();
         PlaceOnActiveScreen();
+        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () => { UpdateLayout(); PlaceOnActiveScreen(); });
         hideTimer.Stop();
         hideTimer.Interval = TimeSpan.FromMilliseconds(durationMs > 0 ? durationMs : kind switch
         {

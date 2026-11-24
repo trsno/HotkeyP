@@ -62,6 +62,14 @@
                         </DockPanel>
                         <Slider x:Name="DelaySlider" Minimum="100" Maximum="1500" TickFrequency="50" IsSnapToTickEnabled="True"
                                 Margin="0,8,0,0" ValueChanged="Delay_Changed" />
+                        <TextBlock Text="Pass these buttons on immediately (no delay)" Style="{StaticResource Caption}" Margin="0,12,0,4" />
+                        <WrapPanel x:Name="NotDelayPanel">
+                            <CheckBox Content="Left" Tag="0" Margin="0,0,16,0" />
+                            <CheckBox Content="Right" Tag="1" Margin="0,0,16,0" />
+                            <CheckBox Content="Middle" Tag="4" Margin="0,0,16,0" />
+                            <CheckBox Content="Back (X1)" Tag="5" Margin="0,0,16,0" />
+                            <CheckBox Content="Forward (X2)" Tag="6" Margin="0,0,16,0" />
+                        </WrapPanel>
                     </StackPanel>
                 </Border>
 
