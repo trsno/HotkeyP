@@ -212,6 +212,8 @@ public sealed class AppController : IAppHost, IDisposable
 
     public void Dispose()
     {
+        // windows hidden by "Hide window" / "Minimize to tray" must not stay invisible after HotkeyP exits
+        try { WindowCommands.UnhideAll(); } catch (Exception ex) { Log.Error(ex); }
         tray?.Dispose();
         Engine?.Dispose();
         Runner?.Dispose();

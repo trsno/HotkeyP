@@ -118,6 +118,8 @@ sealed class TrayIcon : IDisposable
         return Drawing.Icon.FromHandle(result.GetHicon());
     }
 
+    static readonly List<Forms.NotifyIcon> restoreIcons = new();
+
     /// <summary>Icon for a window or application hidden by a command; clicking it restores it and removes the icon.</summary>
     public static void AddRestoreIcon(string tooltip, IntPtr hIcon, Action restore)
     {
@@ -125,8 +127,10 @@ sealed class TrayIcon : IDisposable
         try { ico = hIcon != IntPtr.Zero ? (Drawing.Icon)Drawing.Icon.FromHandle(hIcon).Clone() : Drawing.SystemIcons.Application; }
         catch (ArgumentException) { ico = Drawing.SystemIcons.Application; }
         var ni = new Forms.NotifyIcon { Icon = ico, Text = tooltip.Length > 63 ? tooltip[..63] : tooltip, Visible = true };
+        restoreIcons.Add(ni);
         ni.MouseUp += (_, _) =>
         {
+            restoreIcons.Remove(ni);
             ni.Visible = false;
             ni.Dispose();
             restore();
@@ -135,6 +139,8 @@ sealed class TrayIcon : IDisposable
 
     public void Dispose()
     {
+        foreach (var ni in restoreIcons) { ni.Visible = false; ni.Dispose(); }
+        restoreIcons.Clear();
         icon.Visible = false;
         icon.Dispose();
     }
