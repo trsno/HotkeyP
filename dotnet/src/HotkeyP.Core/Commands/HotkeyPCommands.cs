@@ -54,8 +54,9 @@ static class HotkeyPCommands
     {
         var hk = c.Hotkey;
         if (hk == null) return;
-        var parts = hk.Args.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList();
-        if (parts.Count == 0 || !int.TryParse(parts[0], out int n)) return;
+        var nums = Model.MultiCommandParam.Parse(hk.Args);
+        if (nums.Count == 0) return;
+        int n = nums[0].Value;
         var list = c.Runner.Hotkeys;
         if (n < 1 || n > list.Count || ReferenceEquals(list[n - 1], hk))
         {
@@ -66,11 +67,13 @@ static class HotkeyPCommands
         if (!running.Add(hk)) return;
         try { c.Runner.Execute(list[n - 1]); }
         finally { running.Remove(hk); }
-        if (parts.Count > 1)
+        // C++: move the first number to the end, keeping the separator character that followed it
+        string args = hk.Args;
+        int end = nums[0].End;
+        if (end < args.Length)
         {
-            parts.Add(parts[0]);
-            parts.RemoveAt(0);
-            hk.Args = string.Join(' ', parts);
+            char sep = args[end];
+            hk.Args = args[(end + 1)..] + sep + n.ToString(System.Globalization.CultureInfo.InvariantCulture);
             c.Host.DocumentChanged();
         }
     }

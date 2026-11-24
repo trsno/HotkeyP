@@ -346,6 +346,7 @@ public partial class HotkeyEditorWindow : Window
             return;
         }
         test.Ask = false;
+        test.Delay = false;
         app.Runner.Post(() => app.Runner.Execute(test));
     }
 

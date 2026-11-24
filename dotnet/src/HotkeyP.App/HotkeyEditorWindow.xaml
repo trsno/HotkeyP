@@ -198,7 +198,7 @@
 
                         <WrapPanel Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,8,0,0">
                             <CheckBox x:Name="AskBox" Content="Ask before running" Margin="0,4,20,4" />
-                            <CheckBox x:Name="DelayBox" Content="Wait until keys are released" Margin="0,4,20,4" />
+                            <CheckBox x:Name="DelayBox" Content="Count down 5 s before running (can be cancelled)" Margin="0,4,20,4" />
                             <CheckBox x:Name="AutoStartBox" Content="Run when HotkeyP starts" Margin="0,4,20,4" />
                             <CheckBox x:Name="TrayBox" Content="Show in tray menu" Margin="0,4,20,4" />
                         </WrapPanel>

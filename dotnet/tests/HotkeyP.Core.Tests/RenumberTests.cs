@@ -40,3 +40,28 @@ public class RenumberTests
         Assert.Equal(targets, now);
     }
 }
+
+public class MultiCommandParamTests
+{
+    [Theory]
+    [InlineData("3,5,8", new[] { 3, 5, 8 })]
+    [InlineData("3 5 8", new[] { 3, 5, 8 })]
+    [InlineData("3;5", new[] { 3, 5 })]
+    [InlineData("2 0 4", new[] { 2 })]
+    [InlineData("abc", new int[0])]
+    [InlineData("", new int[0])]
+    public void ParsesLikeCpp(string s, int[] expected)
+        => Assert.Equal(expected, HotkeyP.Model.MultiCommandParam.Parse(s).Select(n => n.Value));
+
+    [Fact]
+    public void RenumberKeepsCommaSeparators()
+        => Assert.Equal("4,6,9", HotkeyP.Model.MultiCommandParam.Renumber("3,5,8", i => i + 1));
+
+    [Fact]
+    public void RenumberDropsDeleted()
+        => Assert.Equal("3,7", HotkeyP.Model.MultiCommandParam.Renumber("3,5,8", i => i == 4 ? null : i > 4 ? i - 1 : i));
+
+    [Fact]
+    public void RenumberLeavesUnparsableAlone()
+        => Assert.Equal("abc", HotkeyP.Model.MultiCommandParam.Renumber("abc", i => i + 1));
+}

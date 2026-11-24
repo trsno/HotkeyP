@@ -66,7 +66,8 @@ public sealed class AppSettings
     }
 
     const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
-    const string RunName = "HotkeyP";
+    // a value name of its own: the original HotkeyP uses "HotkeyP", and that entry must not be repointed or deleted
+    const string RunName = "HotkeyP (.NET)";
 
     /// <summary>Registers or removes HotkeyP in the current user's startup programs.</summary>
     public static void SetStartWithWindows(bool on, string exePath)
@@ -79,6 +80,6 @@ public sealed class AppSettings
     public static bool IsStartWithWindows()
     {
         using var key = Registry.CurrentUser.OpenSubKey(RunKey);
-        return key?.GetValue(RunName) is string v && v.Contains("HotkeyP", StringComparison.OrdinalIgnoreCase);
+        return key?.GetValue(RunName) is string;
     }
 }

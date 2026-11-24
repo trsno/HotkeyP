@@ -98,12 +98,13 @@ public sealed class CommandRunner : IDisposable
     /// <summary>Runs a hotkey: asks or waits first if configured, then the program or command, then the sound.</summary>
     public void Execute(Hotkey hk, bool fromKeyPress = false)
     {
-        if (hk.Ask && !Host.Confirm($"Do you want to run \"{DisplayName(hk)}\"?")) return;
-        if (hk.Delay)
+        // C++ delayAndExecuteHotKey: "ask" shows a yes/no question; otherwise "delay" shows a 5 s countdown with Cancel
+        string detail = hk.IsCommand ? $"{CommandCatalog.NameOf(hk.Command)} {hk.Args}" : $"{hk.Exe} {hk.Args}";
+        if (hk.Ask)
         {
-            // wait until the user releases the hotkey, so its modifiers do not reach the started program
-            Input.InputSender.WaitForKeysReleased();
+            if (!Host.Confirm($"Do you want to execute this command?\n\n{hk.Note}\n{detail}")) return;
         }
+        else if (hk.Delay && !Host.Countdown(DisplayName(hk), detail.Trim())) return;
         if (hk.IsCommand) Run(hk.Command, hk.Args, hk, TriggerKind.OnlyDown);
         else Launch(hk);
         if (!string.IsNullOrEmpty(hk.Sound))
@@ -151,10 +152,11 @@ public sealed class CommandRunner : IDisposable
     {
         var list = Hotkeys;
         var result = new List<Hotkey>();
-        foreach (var part in hk.Args.Split([' ', ',', ';'], StringSplitOptions.RemoveEmptyEntries))
+        foreach (var num in Model.MultiCommandParam.Parse(hk.Args))
         {
-            if (!int.TryParse(part, out int n)) break;
-            if (n >= 1 && n <= list.Count && !ReferenceEquals(list[n - 1], hk)) result.Add(list[n - 1]);
+            int n = num.Value;
+            if (n < 1 || n > list.Count) break; // C++: "Invalid multi-command number" stops the list
+            if (!ReferenceEquals(list[n - 1], hk)) result.Add(list[n - 1]);
         }
         return result;
     }

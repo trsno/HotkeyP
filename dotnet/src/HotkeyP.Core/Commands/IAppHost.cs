@@ -13,6 +13,8 @@ public interface IAppHost
     void ShowMainWindow();
     void ShowMessage(string text, bool error = true);
     bool Confirm(string text);
+    /// <summary>"Delay" option: shows the command for a few seconds with a Cancel button; true when not cancelled.</summary>
+    bool Countdown(string title, string detail);
     /// <summary>
     /// On-screen display. <paramref name="level"/> is 0..1 for a bar (volume), null for plain text.
     /// For <see cref="OsdKind.DiskFree"/> the text is in the <see cref="DiskFreeOsd"/> format (one bar per drive).

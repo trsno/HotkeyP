@@ -46,13 +46,7 @@ public sealed class HotkeyDocument
         foreach (var hk in Hotkeys)
         {
             if (hk.Command is not (61 or 70)) continue;
-            var nums = new List<string>();
-            foreach (var part in hk.Args.Split(' ', StringSplitOptions.RemoveEmptyEntries))
-            {
-                if (!int.TryParse(part, out int n) || n == 0) break;
-                if (map(n - 1) is int m) nums.Add((m + 1).ToString(CultureInfo.InvariantCulture));
-            }
-            hk.Args = string.Join(' ', nums);
+            hk.Args = MultiCommandParam.Renumber(hk.Args, map);
         }
     }
 

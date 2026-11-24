@@ -174,6 +174,23 @@ public sealed class AppController : IAppHost, IDisposable
     public bool Confirm(string text) => UiSync(() =>
         MessageBox.Show(text, "HotkeyP", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes);
 
+    int countdownActive;
+
+    public bool Countdown(string title, string detail)
+    {
+        // only one countdown at a time; further presses are ignored, as in the original
+        if (Interlocked.CompareExchange(ref countdownActive, 1, 0) != 0) return false;
+        try
+        {
+            var fg = Native.NativeMethods.GetForegroundWindow();
+            bool run = UiSync(() => CountdownDialog.Run(title, detail));
+            Native.NativeMethods.SetForegroundWindow(fg);
+            if (run) Thread.Sleep(100);
+            return run;
+        }
+        finally { countdownActive = 0; }
+    }
+
     public void ShowOsd(OsdKind kind, string text, double? level = null, int durationMs = 0) => Ui(() =>
     {
         osd ??= new OsdWindow();
